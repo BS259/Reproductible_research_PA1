@@ -29,8 +29,7 @@ activity <- read.csv('activity.csv')
 summary(activity)
 ```
 
-The data seems to be loaded correctly. Here are a few characteristics of the data:\
-1. There are three variables *'steps'*, *'date'* and *'interval'*.\
+The data seems to be loaded correctly. Here are a few characteristics of the [[data:\\\\](data:\\){.uri}]([data:\\](data:\){.uri}){.uri} 1. There are three variables *'steps'*, *'date'* and *'interval'*.\
 2. A total of *17568* observations are recorded.
 
 # Steps Per Day
@@ -187,14 +186,11 @@ k
 The new data has the following characteristics.
 
 ```{r new, cache=TRUE, warning=FALSE, message=FALSE}
-#mean
-mean_steps <- mean(act5$total)
-mean_steps
-
-#median
-med_steps <- median(act5$total)
-med_steps
 ```
+
+![]() #mean mean_steps \<- mean(act5\$total) mean_steps
+
+#median med_steps \<- median(act5\$total) med_steps
 
 \
 The new data thus have **10766.19** and **10766.19** as its mean and median, resp. So, its not skewed like before.\
