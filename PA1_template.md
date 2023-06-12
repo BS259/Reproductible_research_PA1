@@ -1,0 +1,257 @@
+---
+title: "Reproducible Research Assignment 1"
+author: "Bhavneet Singh"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading and Preprocessing the Data
+
+First, download the data if not already done using the following code.
+
+```{r download, cache=TRUE}
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+if(!file.exists('activity.csv')){
+  download.file(url, destfile = "reproducible_research")
+  unzip("reproducible_research")
+}
+```
+
+Now we have got the file *'activity.csv'* containing the desired data.\
+Read the file into RStudio.
+
+```{r read, cache=TRUE}
+activity <- read.csv('activity.csv')
+summary(activity)
+```
+
+The data seems to be loaded correctly. Here are a few characteristics of the data:\
+1. There are three variables *'steps'*, *'date'* and *'interval'*.\
+2. A total of *17568* observations are recorded.
+
+# Steps Per Day
+
+The total number of steps taken per day are computed using the following code. It requires the packages:\
+1. *dplyr*\
+2. *ggplot2*\
+\
+It is suggested that you load them into Rstudio.
+
+```{r packages, echo=F, message=FALSE, warning=FALSE, results='hide', cache=TRUE}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r total, message=FALSE, warning=FALSE, cache=TRUE}
+#Create a dataset act2, such that it contains the total number of steps taken each day.
+act2 <- activity %>% group_by(date) %>% summarise(date, total = sum(steps))
+
+#Remove the missing values and make the values unique to dates, such that each date is present only once in the data.
+act2 <- act2[complete.cases(act2), ] %>% unique()
+
+#Look up act2, to see whether the data is desirable or not.
+head(act2, 10)
+```
+
+\
+The following code is necessary to make the data more appealing.
+
+```{r act2, message=FALSE, warning=FALSE, cache=TRUE}
+#Necessary conversion
+act2$date <- as.POSIXlt(act2$date)
+act2$day_of_month <- act2$date$mday
+act2$month <- months(act2$date, abbreviate = TRUE)
+act2$Month_day <- paste(act2$month, act2$day_of_month, sep = '-')
+
+#Now look at act2
+head(act2, 10)
+```
+
+\
+The histogram showing total number of steps taken each day is made using the code below.
+
+```{r total_hist, fig.height=7, fig.width=20, message=FALSE, warning=FALSE, cache=TRUE}
+#Create a ggplot object, a base layer to be frank.
+g <- ggplot(act2, aes(Month_day, total))
+g <- g + geom_histogram(stat = 'identity', aes(fill = month), color = 'ghostwhite')
+g <- g + labs(title = "Total Number of Steps Per Day", subtitle = "Missing Values Removed") + xlab("Month - Day") + ylab("Total steps")
+g
+```
+
+\
+\
+\
+The mean and median for the *total steps taken each day* is easily computed using:
+
+```{r cache=TRUE, warning=FALSE, message=FALSE}
+#Mean steps each day
+mean_steps <- mean(act2$total)
+mean_steps
+
+#Median steps each day
+med_steps <- median(act2$total)
+med_steps
+```
+
+So, the mean and median for the *total steps taken each day* are **10766.19** and **10765**, respectively.
+
+# Daily Activity Pattern
+
+Use the following code to construct required dataframe.\
+
+```{r dap, cache=TRUE, warning=FALSE, message=FALSE}
+#Dataframe
+act3 <- activity %>% group_by(interval) %>% summarise(average = mean(steps, na.rm = T))
+
+#Look at the data(it's a good practice)
+head(act3, 10)
+
+#The plot
+f <- ggplot(act3, aes(interval, average)) + geom_line()
+f <- f + labs(title = "Daily Activity Pattern", subtitle = "Missing Values Removed") + xlab("Intervals") + ylab("Daily average steps taken")
+f
+```
+
+\
+The above data is free of missing values. Missing Values can help to find some hidden facts about the data. It is good practice to include them in summary statistics. Let's introduce some kind of way to fill in the missing values (NA).
+
+# Imputing Missing Values
+
+The missing values are computed using table() function.
+
+```{r na, cache=TRUE, warning=FALSE, message=FALSE}
+#Report missing values
+mv <- table(activity$steps, exclude = c(0:1000))
+mv
+
+#Proportion of missing values
+prop <- mv/nrow(activity) 
+prop
+```
+
+\
+Thus, there are **2304** missing values making up almost **13.11 percent** of all observations. This is a big share but it can still reveal some interesting facts.\
+Let us replace the missing values with the mean number of steps taken.
+
+```{r replace, cache=TRUE, warning=FALSE, message=FALSE}
+#create a dataframe act4
+act4 <- activity
+
+#initial look
+head(act4, 10)
+
+#mean of steps
+mean_steps <- mean(act4$steps, na.rm = TRUE)
+
+#replace NA values with it
+act4 <- act4 %>% replace(is.na(.), mean_steps)
+
+#look at the values
+head(act4, 10)
+```
+
+\
+So, the values are replaced. Now let's make the histogram and time series plots we made previously.\
+
+```{r plot2, cache=TRUE, message=FALSE, warning=FALSE}
+#create a new dataframe
+act5 <- act4 %>% group_by(date) %>% summarise(date, total = sum(steps)) %>% unique()
+
+#create month and day_of_month and Month_day columsn
+act5$date <- as.POSIXlt(act5$date)
+act5$day_of_month <- act5$date$mday
+act5$month <- months(act5$date, abbreviate = TRUE)
+act5$Month_day <- with(act5, paste(month, day_of_month, sep = '-'))
+
+#look at the data
+head(act5, 10)
+```
+
+\
+Here's the plot code.
+
+```{r hist2, fig.height=7, fig.width=20, message=FALSE, warning=FALSE, cache=TRUE}
+k <- ggplot(act5, aes(Month_day, total))
+k <- k + geom_histogram(stat = 'identity', aes(fill = month), color = 'black')
+k <- k + labs(title = "Total Number of Steps Per Day", subtitle = "Missing Values Replaced") + xlab("Month - Day") + ylab("Total steps")
+k
+```
+
+\
+\
+\
+The new data has the following characteristics.
+
+```{r new, cache=TRUE, warning=FALSE, message=FALSE}
+#mean
+mean_steps <- mean(act5$total)
+mean_steps
+
+#median
+med_steps <- median(act5$total)
+med_steps
+```
+
+\
+The new data thus have **10766.19** and **10766.19** as its mean and median, resp. So, its not skewed like before.\
+The time series plot code is made using the following code.
+
+```{r time2, cache=TRUE, warning=FALSE, message=FALSE}
+#create dataframe
+act6 <- act4
+
+#transform it
+act6 <- act6 %>% group_by(interval) %>% summarise(interval, average = mean(steps)) %>% unique()
+
+#plot
+a <- ggplot(act6, aes(interval, average))
+a <- a + geom_rug(sides = "l")
+a <- a + geom_line(data = act3, aes(interval, average), color = 'lightgreen')
+a <- a + geom_rug(data = act3, color = 'lightgreen', sides = "l")
+a <- a + geom_line() + labs(title = "Daily Activity Pattern", subtitle = "Missing Values Replaced") + xlab("Intervals") + ylab("Daily average steps taken")
+a
+```
+
+\
+Thus, the new data has slightly lower peaks than before replacing NA values. The pattern though, thus seems similar.\
+\
+\# Weekend and Weekday Patterns\
+For this we need to find out whether the given date is a weekend or a weekday. So, using the following code, we get it.
+
+```{r wdorwe, cache=TRUE, warning=FALSE, message=FALSE}
+#Take activity and create a new data frame
+ac <- activity
+
+#Find out whether the necessary
+ac$date <- as.POSIXlt(ac$date)
+ac$day <- weekdays(ac$date)
+ac$day <- factor(ac$day, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), labels = c(rep("Weekday", 5), rep("Weekend", 2)))
+
+
+#Summarise
+ac <- ac %>% group_by(interval) %>% group_by(day, .add = T) %>% summarise(interval, day, average = mean(steps, na.rm = T)) %>% unique()
+
+#look at ac
+head(ac, 10)
+```
+
+\
+Now let's create the panel plot.
+
+```{r panel_plot, fig.width=10, message=FALSE, warning=FALSE, cache=TRUE}
+b <- ggplot(ac, aes(interval, average))
+b <- b + geom_line(color = 'ghostwhite')
+b <- b + geom_area(aes(fill = day))
+b <- b + geom_rug(color = 'maroon', sides = "l")
+b <- b + facet_wrap(~day)
+b <- b + labs(title = "Weekday and Weekend Analysis") + xlab("Intervals") + ylab("Average no. of steps")
+b
+```
+
+\
+The plot shows that there is clearly more activity on weekdays compared to weekends during early hours of the day (between 500 to 1000). This could be due to people travelling to their jobs. Also the same can be seen for interval (1800, 2000).\
+It is however clear that on average people are travelling more on weekends between the interval (1000, 1800). This could be due to people getting out to enjoy their weekends.
